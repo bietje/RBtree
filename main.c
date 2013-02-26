@@ -32,6 +32,9 @@ int main(int argc, char **argv)
 	tree_add_node(&root, 20);;
 	tree_add_node(&root, 7);
 	tree_add_node(&root, 30);
+	tree_add_node(&root, 6);
+	tree_add_node(&root, 5);
+	tree_add_node(&root, 4);
 	
 	/* dump tree */
 	tree_dump(root.tree, stdout);

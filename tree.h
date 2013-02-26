@@ -72,6 +72,30 @@ static inline struct rbtree *tree_grandparent(struct rbtree *node)
 	}
 }
 
+/**
+ * \brief Check wether the given node has a sibling.
+ * \param node Node to check.
+ * \retval NULL if \p node has no sibling.
+ * \return The sibling of \p node.
+ */
+static inline struct rbtree *tree_node_has_sibling(struct rbtree *node)
+{
+	struct rbtree *parent;
+	if(node) {
+		parent = tree_parent(node);
+		if(parent) {
+			if(node == parent->left) {
+				/* node is on the left of parent, so the sibling of node is on right of parent. */
+				return parent->right;
+			} else {
+				return parent->left;
+			}
+		}
+	}
+	
+	return NULL;
+}
+
 extern int tree_insert(struct rbtree_root *root, struct rbtree *node);
 #ifdef HAVE_DBG
 extern void tree_dump(struct rbtree *tree, FILE *stream);

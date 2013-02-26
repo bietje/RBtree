@@ -50,12 +50,14 @@ static struct rbtree *__tree_insert(struct rbtree_root *root, struct rbtree *nod
 		if(node->key <= tree->key) {
 			if(tree->left == NULL) {
 				tree->left = node;
+				node->parent = tree;
 				break;
 			}
 			tree = tree->left;
 		} else {
 			if(tree->right == NULL) {
 				tree->right = node;
+				node->parent = tree;
 				break;
 			}
 			tree = tree->right;
@@ -149,52 +151,34 @@ static struct rbtree *tree_rotate_right(struct rbtree_root *root, struct rbtree 
 	return left;
 }
 
-static void tree_validate_insertion(struct rbtree_root *root, struct rbtree *node)
+static void tree_validate_insertion(struct rbtree_root *root, struct rbtree *current)
 {
-	struct rbtree *parent, *gparent;
+	struct rbtree *x;
 	
-	if(node->parent == NULL) {
+	if(current == root->tree) {
 		return;
 	}
 	
-	while(node != root->tree && node->parent->color == RED) {
-		parent = tree_parent(node);
-		gparent = tree_grandparent(node);
-		if(parent == gparent->left) {
-			struct rbtree *right = gparent->right;
-			if(right->color == RED) {
-				parent->color = BLACK;
-				right->color = BLACK;
-				gparent->color = RED;
-				node = gparent;
+	current = tree_parent(current);
+	while(current != root->tree && current->color == RED) {
+		if((x = tree_node_has_sibling(current)) != NULL) {
+			/* parent has a sibling, pull black down from the GP */
+			if(x->color == RED) {
+				x->color = BLACK;
+				current->color = BLACK;
+				tree_parent(current)->color = RED;
+				current = tree_grandparent(current);
+				continue;
 			} else {
-				/* right is black */
-				if(node == parent->right) {
-					node = parent;
-					tree_rotate_left(root, node);
-				}
-				node->parent->color = BLACK;
-				node->parent->parent->color = RED;
-				tree_rotate_right(root, node->parent->parent);
+				/* 
+				 * if current is on the right of its parent, rotate right. If current is on the left,
+				 * rotate left.
+				 */
+				
 			}
 		} else {
-			/* repeat with left and right exchanged */
-			struct rbtree *left = gparent->left;
-			if(left->color == RED) {
-				parent->color = BLACK;
-				left->color = BLACK;
-				gparent->color = RED;
-				node = gparent;
-			} else {
-				/* right is black */
-				if(node == parent->right) {
-					node = parent;
-					tree_rotate_left(root, node);
-				}
-				node->parent->color = BLACK;
-				node->parent->parent->color = RED;
-				tree_rotate_right(root, node->parent->parent);
-			}
+			/* rotate in the direction that sets current as parent of pre-rotation parent */
+			
 		}
 	}
 	root->tree->color = BLACK;
@@ -203,32 +187,12 @@ static void tree_validate_insertion(struct rbtree_root *root, struct rbtree *nod
 #ifdef HAVE_DBG
 void tree_dump(struct rbtree *tree, FILE *stream)
 {
-	struct rbtree *node = tree->left;
-	fprintf(stream, "Starting tree dump!\n");
-	fprintf(stream, "[[root: %u] [left:", tree->key);
-	
-	for(;;) {
-		if(!node) {
-			break;
-		} else {
-			fprintf(stream, " %u", node->key);
-			node = node->left;
-		}
+	if(tree == NULL) {
+		return;
 	}
-	
-	fprintf(stream, "] [right:");
-	node = tree->right;
-	for(;;) {
-		if(!node) {
-			break;
-		} else {
-			fprintf(stream, " %u", node->key);
-			node = node->right;
-		}
-	}
-	
-	fprintf(stream, "]\nDone dumping tree!\n");
-	fflush(stream);
+	fprintf(stream, "Node key: %u :: Color: %u\n", tree->key, tree->color);
+	tree_dump(tree->left, stream);
+	tree_dump(tree->right, stream);
 }
 
 void tree_add_node(struct rbtree_root *root, int key)
