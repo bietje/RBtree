@@ -144,9 +144,9 @@ static struct rbtree *tree_rotate_right(struct rbtree_root *root, struct rbtree 
 	
 	left->right = tree;
 	tree->parent = left;
-	rbtree_color_t tmp = tree->color;
-	tree->color = left->color;
-	left->color = tmp;
+// 	rbtree_color_t tmp = tree->color;
+// 	tree->color = left->color;
+// 	left->color = tmp;
 	
 	return left;
 }
@@ -167,18 +167,31 @@ static void tree_validate_insertion(struct rbtree_root *root, struct rbtree *cur
 				x->color = BLACK;
 				current->color = BLACK;
 				tree_parent(current)->color = RED;
-				current = tree_grandparent(current);
+				current = tree_parent(current);
 				continue;
 			} else {
 				/* 
-				 * if current is on the right of its parent, rotate right. If current is on the left,
+				 * if current is the right child of its parent, rotate right. If current is on the left,
 				 * rotate left.
 				 */
-				
+				if(current == tree_parent(current)->right) {
+					current = tree_rotate_right(root, current);
+				} else {
+					current = tree_rotate_left(root, current);
+				}
 			}
 		} else {
+			x = tree_parent(current);
 			/* rotate in the direction that sets current as parent of pre-rotation parent */
-			
+			if(x->right == current) {
+				/* rotate to the left */
+				tree_rotate_left(root, x);
+			} else {
+				tree_rotate_right(root, x);
+			}
+			rbtree_color_t tmp = x->color;
+			x->color = current->color;
+			current->color = tmp;
 		}
 	}
 	root->tree->color = BLACK;
@@ -187,10 +200,24 @@ static void tree_validate_insertion(struct rbtree_root *root, struct rbtree *cur
 #ifdef HAVE_DBG
 void tree_dump(struct rbtree *tree, FILE *stream)
 {
+	struct rbtree *parent;
+	char *location;
 	if(tree == NULL) {
 		return;
 	}
-	fprintf(stream, "Node key: %u :: Color: %u\n", tree->key, tree->color);
+	
+	parent = tree_parent(tree);
+	if(parent) {
+		if(parent->left == tree) {
+			location = "Node is left of parent";
+		} else {
+			location = "Node is right of parent";
+		}
+	} else {
+		location = "Node is the root";
+	}
+
+	fprintf(stream, "Node key: %u :: Color: %u :: %s\n", tree->key, tree->color, location);
 	tree_dump(tree->left, stream);
 	tree_dump(tree->right, stream);
 }
