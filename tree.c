@@ -227,7 +227,7 @@ void tree_dump(struct rbtree *tree, FILE *stream)
 		}
 	}
 	
-	fprintf(stream, "]\nDone dumping tree!");
+	fprintf(stream, "]\nDone dumping tree!\n");
 	fflush(stream);
 }
 
