@@ -29,16 +29,25 @@ int main(int argc, char **argv)
 	root.tree = NULL;
 	
 	/* add nodes */
+#if 1
 	tree_add_node(&root, 20);;
-	tree_add_node(&root, 7);
+	tree_add_node(&root, 10);
 	tree_add_node(&root, 30);
-	tree_add_node(&root, 6);
-	tree_add_node(&root, 5);
+	tree_add_node(&root, 40);
+	tree_add_node(&root, 27);
 	tree_add_node(&root, 25);
-	tree_add_node(&root, 24);
-	
+	tree_add_node(&root, 28);
+	tree_add_node(&root, 26);
+#else
+	int i = 1;
+	for(; i <= 12; i++) {
+		tree_add_node(&root, i);
+	}
+// 	tree_add_node(&root, 2);
+// 	tree_add_node(&root, 1);
+#endif
 	/* dump tree */
 	tree_dump(root.tree, stdout);
-	tree_cleanup(root.tree);
+// 	tree_cleanup(root.tree);
 	return 0;
 }

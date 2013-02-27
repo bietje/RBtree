@@ -96,6 +96,14 @@ static inline struct rbtree *tree_node_has_sibling(struct rbtree *node)
 	return NULL;
 }
 
+static inline int tree_parent_on_left(struct rbtree *current)
+{
+	if(current->parent != NULL && current->parent->right == current) {
+		return 1;
+	}
+	return 0;
+}
+
 extern int tree_insert(struct rbtree_root *root, struct rbtree *node);
 #ifdef HAVE_DBG
 extern void tree_dump(struct rbtree *tree, FILE *stream);
