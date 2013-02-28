@@ -105,10 +105,13 @@ static inline int tree_parent_on_left(struct rbtree *current)
 }
 
 extern int tree_insert(struct rbtree_root *root, struct rbtree *node);
+extern struct rbtree *tree_search(struct rbtree_root *root, int key);
+extern struct rbtree *tree_find_rightmost(struct rbtree *tree);
+extern struct rbtree *tree_find_leftmost(struct rbtree *tree);
 #ifdef HAVE_DBG
 extern void tree_dump(struct rbtree *tree, FILE *stream);
 extern void tree_add_node(struct rbtree_root *root, int key);
-void tree_cleanup(struct rbtree *root);
+extern void tree_cleanup(struct rbtree *root);
 #endif
 
 #endif

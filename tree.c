@@ -26,6 +26,9 @@ static void tree_validate_insertion(struct rbtree_root *root, struct rbtree *nod
 static void tree_rotate_swap_parent(struct rbtree_root *root, struct rbtree *parent, 
 									struct rbtree *current);
 static void tree_dump_node(struct rbtree *tree, FILE *stream);
+static struct rbtree *__tree_search(struct rbtree *tree, int key);
+static struct rbtree *tree_find_successor(struct rbtree *tree);
+static struct rbtree *tree_find_predecessor(struct rbtree *tree);
 
 int tree_insert(struct rbtree_root *root, struct rbtree *node)
 {
@@ -37,6 +40,49 @@ int tree_insert(struct rbtree_root *root, struct rbtree *node)
 	
 	return 0;
 }
+
+struct rbtree *tree_search(struct rbtree_root *root, int key)
+{
+	return __tree_search(root->tree, key);
+}
+
+#if HAVE_RECURSION
+static struct rbtree *__tree_search(struct rbtree *tree, int key)
+{
+	if(tree == NULL) {
+		return NULL;
+	}
+	
+	if(tree->key == key) {
+		return tree;
+	}
+	
+	if(key < tree->key) {
+		return __tree_search(tree->left, key);
+	} else {
+		return __tree_search(tree->right, key);
+	}
+}
+#else
+
+static struct rbtree *__tree_search(struct rbtree *tree, int key)
+{
+	for(;;) {
+		if(tree == NULL) {
+			return NULL;
+		}
+		if(tree->key == key) {
+			return tree;
+		}
+		
+		if(key < tree->key) {
+			tree = tree->left;
+		} else {
+			tree = tree->right;
+		}
+	}
+}
+#endif
 
 static struct rbtree *__tree_insert(struct rbtree_root *root, struct rbtree *node)
 {
@@ -68,6 +114,71 @@ static struct rbtree *__tree_insert(struct rbtree_root *root, struct rbtree *nod
 	}
 	
 	return node;
+}
+
+struct rbtree *tree_find_leftmost(struct rbtree *tree)
+{
+	if(!tree) {
+		return NULL;
+	}
+	
+	for(;;) {
+		if(tree->left == NULL) {
+			return tree;
+		}
+		tree = tree->left;
+	}
+}
+
+struct rbtree *tree_find_rightmost(struct rbtree *tree)
+{
+	if(!tree) {
+		return NULL;
+	}
+	
+	for(;;) {
+		if(tree->right == NULL) {
+			return tree;
+		}
+		tree = tree->right;
+	}
+}
+
+static struct rbtree *tree_find_successor(struct rbtree *tree)
+{
+	if(!tree) {
+		return NULL;
+	}
+	
+	if(!tree->right) {
+		struct rbtree *tmp = tree, *carriage = tree_parent(tree);
+		
+		while (carriage != NULL && carriage->left != tmp) {
+			tmp = carriage;
+			carriage = carriage->parent;
+		}
+		return carriage;
+	}
+	
+	return tree_find_leftmost(tree->right);
+}
+
+static struct rbtree *tree_find_predecessor(struct rbtree *tree)
+{
+	if(!tree) {
+		return NULL;
+	}
+	
+	if(!tree->left) {
+		struct rbtree *tmp = tree, *carriage = tree_parent(tree);
+		
+		while (carriage != NULL && carriage->right != tmp) {
+			tmp = carriage;
+			carriage = carriage->parent;
+		}
+		return carriage;
+	}
+	return tree_find_rightmost(tree->left);
 }
 
 static struct rbtree *tree_rotate_left(struct rbtree_root *root, struct rbtree *tree)
@@ -168,7 +279,8 @@ static void tree_validate_insertion(struct rbtree_root *root, struct rbtree *cur
 	root->tree->color = BLACK;
 }
 
-static void tree_rotate_swap_parent(struct rbtree_root *root, struct rbtree *parent, struct rbtree *current)
+static void tree_rotate_swap_parent(struct rbtree_root *root, struct rbtree *parent, 
+									struct rbtree *current)
 {
 	rbtree_color_t tmp = parent->color;
 	/* rotate in the direction that sets current as parent of pre-rotation parent */
@@ -186,6 +298,10 @@ static void tree_rotate_swap_parent(struct rbtree_root *root, struct rbtree *par
 #ifdef HAVE_DBG
 void tree_dump(struct rbtree *tree, FILE *stream)
 {
+	struct rbtree *node = __tree_search(tree, 4);
+	struct rbtree *ss = tree_find_successor(node);
+	struct rbtree *pdc = tree_find_predecessor(node);
+	printf("SS 4: %u :: PDC 4: %u\n", ss->key, pdc->key);
 	tree_dump_node(tree, stream);
 }
 

@@ -18,6 +18,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
 
 #include "tree.h"
 
@@ -29,7 +30,7 @@ int main(int argc, char **argv)
 	root.tree = NULL;
 	
 	/* add nodes */
-#if 1
+#if 0
 	tree_add_node(&root, 20);;
 	tree_add_node(&root, 10);
 	tree_add_node(&root, 30);
@@ -40,14 +41,16 @@ int main(int argc, char **argv)
 	tree_add_node(&root, 26);
 #else
 	int i = 1;
-	for(; i <= 12; i++) {
+	for(; i <= 10; i++) {
 		tree_add_node(&root, i);
 	}
 // 	tree_add_node(&root, 2);
 // 	tree_add_node(&root, 1);
 #endif
-	/* dump tree */
-	tree_dump(root.tree, stdout);
+
+	struct rbtree *node = tree_search(&root, 2);
+	tree_dump(root.tree, stdout);;
+	printf("\nSearch 26: p:[%p]k:[%u]\n", node, (node) ? node->key : -1);
 // 	tree_cleanup(root.tree);
 	return 0;
 }
