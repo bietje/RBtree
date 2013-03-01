@@ -41,16 +41,16 @@ int main(int argc, char **argv)
 	tree_add_node(&root, 26);
 #else
 	int i = 1;
-	for(; i <= 10; i++) {
+	for(; i <= 12; i++) {
 		tree_add_node(&root, i);
 	}
 // 	tree_add_node(&root, 2);
 // 	tree_add_node(&root, 1);
 #endif
 
-	struct rbtree *node = tree_search(&root, 2);
+// 	struct rbtree *node = tree_search(&root, 12);
+// 	tree_delete_node(&root, node);
 	tree_dump(root.tree, stdout);;
-	printf("\nSearch 26: p:[%p]k:[%u]\n", node, (node) ? node->key : -1);
 // 	tree_cleanup(root.tree);
 	return 0;
 }

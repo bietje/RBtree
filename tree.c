@@ -29,6 +29,8 @@ static void tree_dump_node(struct rbtree *tree, FILE *stream);
 static struct rbtree *__tree_search(struct rbtree *tree, int key);
 static struct rbtree *tree_find_successor(struct rbtree *tree);
 static struct rbtree *tree_find_predecessor(struct rbtree *tree);
+static int __tree_delete_node(struct rbtree_root *tree, struct rbtree *node);
+static struct rbtree *tree_find_replacement(struct rbtree *tree);
 
 int tree_insert(struct rbtree_root *root, struct rbtree *node)
 {
@@ -297,26 +299,86 @@ static void tree_rotate_swap_parent(struct rbtree_root *root, struct rbtree *par
 
 int tree_delete_node(struct rbtree_root *root, struct rbtree *node)
 {
-	int rc = __tree_delete_node(root->tree, node);
-	root->color = BLACK;
+	int rc = __tree_delete_node(root, node);
+	if(root->tree) {
+		root->tree->color = BLACK;
+	}
+	return rc;
 }
 
-static int __tree_delete_node(struct rbtree *tree, struct rbtree *node)
+typedef enum
 {
-	struct rbtree *current = node;
+	TREE_DELETION_TERMINATE = 0,
+	TREE_DELETION_CASE0,
+	TREE_DELETION_CASE1,
+	TREE_DELETION_CASE2,
+	TREE_DELETION_CASE3,
+	TREE_DELETION_CASE4,
+} tree_deletion_case_t;
+
+static int __tree_delete_node(struct rbtree_root *root, struct rbtree *node)
+{
+	struct rbtree *current = node, *parent;
 	int rc = 0;
+	tree_deletion_case_t _case = TREE_DELETION_CASE0;
+	
+	while(_case) {
+		switch(_case) {
+			case TREE_DELETION_CASE1:
+				break;
+				
+			case TREE_DELETION_CASE2:
+				break;
+				
+			case TREE_DELETION_CASE3:
+				break;
+				
+			case TREE_DELETION_CASE4:
+				break;
+				
+			case TREE_DELETION_CASE0:
+			default:
+				if(current->left == NULL && current->right == NULL && current->color == RED) {
+					parent = tree_parent(current);
+					if(parent) {
+						current->parent = NULL;
+						if(parent->left == current) {
+							parent->left = NULL;
+						} else {
+							parent->right = NULL;
+						}
+					} else {
+						root->tree = NULL;
+					}
+					_case = TREE_DELETION_TERMINATE;
+				}
+				break;
+		}
+	}
 	
 	return rc;
+}
+
+static struct rbtree *tree_find_replacement(struct rbtree *tree)
+{
+	struct rbtree *successor = tree_find_successor(tree);
+	
+	if(successor->color == RED || !(successor->color == BLACK && successor->left == NULL 
+		&& successor->right == NULL)) {
+		return successor;
+	} else {
+		return tree_find_predecessor(tree);
+	}
 }
 
 #ifdef HAVE_DBG
 void tree_dump(struct rbtree *tree, FILE *stream)
 {
-	struct rbtree *node = __tree_search(tree, 4);
-	struct rbtree *ss = tree_find_successor(node);
-	struct rbtree *pdc = tree_find_predecessor(node);
-	printf("SS 4: %u :: PDC 4: %u\n", ss->key, pdc->key);
+	struct rbtree *node = __tree_search(tree, 10);
+	node = tree_find_replacement(node);
+	printf("Replacement would be: %X\n", node->key);
 	tree_dump_node(tree, stream);
+	fputc('\n', stream);
 }
 
 static void tree_dump_node(struct rbtree *tree, FILE *stream)
