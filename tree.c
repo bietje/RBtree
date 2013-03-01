@@ -295,6 +295,20 @@ static void tree_rotate_swap_parent(struct rbtree_root *root, struct rbtree *par
 	current->color = tmp;
 }
 
+int tree_delete_node(struct rbtree_root *root, struct rbtree *node)
+{
+	int rc = __tree_delete_node(root->tree, node);
+	root->color = BLACK;
+}
+
+static int __tree_delete_node(struct rbtree *tree, struct rbtree *node)
+{
+	struct rbtree *current = node;
+	int rc = 0;
+	
+	return rc;
+}
+
 #ifdef HAVE_DBG
 void tree_dump(struct rbtree *tree, FILE *stream)
 {
