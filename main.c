@@ -48,8 +48,8 @@ int main(int argc, char **argv)
 // 	tree_add_node(&root, 1);
 #endif
 
-// 	struct rbtree *node = tree_search(&root, 12);
-// 	tree_delete_node(&root, node);
+	struct rbtree *node = tree_search(&root, 12);
+	tree_delete_node(&root, node);
 	tree_dump(root.tree, stdout);;
 // 	tree_cleanup(root.tree);
 	return 0;

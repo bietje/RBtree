@@ -318,8 +318,9 @@ typedef enum
 
 static int __tree_delete_node(struct rbtree_root *root, struct rbtree *node)
 {
-	struct rbtree *current = node, *parent;
+	struct rbtree *current = node, *parent, *replacement;
 	int rc = 0;
+	char replace = 0;
 	tree_deletion_case_t _case = TREE_DELETION_CASE0;
 	
 	while(_case) {
@@ -338,22 +339,41 @@ static int __tree_delete_node(struct rbtree_root *root, struct rbtree *node)
 				
 			case TREE_DELETION_CASE0:
 			default:
-				if(current->left == NULL && current->right == NULL && current->color == RED) {
-					parent = tree_parent(current);
-					if(parent) {
-						current->parent = NULL;
-						if(parent->left == current) {
-							parent->left = NULL;
-						} else {
-							parent->right = NULL;
+				if(!(current->left && current->right)) {
+					/* current has at most one child */
+					if(current->left || current->right) {
+						/* current has one child */
+						if(current->color == RED) {
+							/* current has just one child and is red */
+						} else if(current->color == BLACK) {
+							
 						}
 					} else {
-						root->tree = NULL;
+						/* current has no children */
+						if(current->color == RED) {
+							parent = tree_parent(current);
+							if(parent) {
+								current->parent = NULL;
+								if(parent->left == current) {
+									parent->left = NULL;
+								} else {
+									parent->right = NULL;
+								}
+							} else {
+								root->tree = NULL;
+							}
+							_case = TREE_DELETION_TERMINATE;
+						}
 					}
-					_case = TREE_DELETION_TERMINATE;
 				}
 				break;
 		}
+	}
+
+	if(replace) {
+		replacement->left = current->left;
+		replacement->right = current->right;
+		replacement->parent = current->parent;
 	}
 	
 	return rc;
