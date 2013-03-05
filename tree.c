@@ -31,6 +31,7 @@ static struct rbtree *tree_find_successor(struct rbtree *tree);
 static struct rbtree *tree_find_predecessor(struct rbtree *tree);
 static int __tree_delete_node(struct rbtree_root *tree, struct rbtree *node);
 static struct rbtree *tree_find_replacement(struct rbtree *tree);
+static void tree_sub_deletion(struct rbtree_root *root, struct rbtree *current);
 
 int tree_insert(struct rbtree_root *root, struct rbtree *node)
 {
@@ -309,74 +310,131 @@ int tree_delete_node(struct rbtree_root *root, struct rbtree *node)
 typedef enum
 {
 	TREE_DELETION_TERMINATE = 0,
-	TREE_DELETION_CASE0,
-	TREE_DELETION_CASE1,
-	TREE_DELETION_CASE2,
-	TREE_DELETION_CASE3,
-	TREE_DELETION_CASE4,
+	TREE_DELETION_CASE0, //!< Current is a red leaf.
+	TREE_DELETION_CASE1, //!< Current is black with one red child.
+	TREE_DELETION_CASE2, //!< Current is black and has no children.
 } tree_deletion_case_t;
+
+typedef enum
+{
+	TREE_SUB_DELETION_TERMINATE = 0,
+	TREE_SUB_DELETION_CASE0, //!< Currents sibling is red.
+	TREE_SUB_DELETION_CASE1, //!< Currents sibling is black with two black children.
+	
+	/**
+	 * \brief Currents sibling is black with at least one red child.
+	 * 
+	 * Case two is executed if the far newphew is black.
+	 */
+	TREE_SUB_DELETION_CASE2,
+	/**
+	 * \brief Currents sibling is black with at least one red child.
+	 * 
+	 * This step is reached through step 2 or directly (i.e. the far nephew is red).
+	 */
+	TREE_SUB_DELETION_CASE3,
+	/**
+	 * \brief Currents sibling is black with at least one red child.
+	 * 
+	 * This step is reached through step 3 and this is the final rotation.
+	 */
+	TREE_SUB_DELETION_CASE4,
+	TREE_SUB_DELETION_CASE5,
+	TREE_SUB_DELETION_CASE6,
+} tree_deletion_subcase_t;
 
 static int __tree_delete_node(struct rbtree_root *root, struct rbtree *node)
 {
 	struct rbtree *current = node, *parent, *replacement;
 	int rc = 0;
 	char replace = 0;
-	tree_deletion_case_t _case = TREE_DELETION_CASE0;
+	tree_deletion_case_t _case;
+	
+	successor:
+	if(!current->left && !current->right) {
+		if(current->color == RED) {
+			_case = TREE_DELETION_CASE0;
+		} else {
+			_case = TREE_DELETION_CASE2;
+		}
+	} else if(!(current->left && current->right) && current->color == BLACK) {
+		/* current has at most one child (and current is black) */
+		_case = TREE_DELETION_CASE1;
+	} else if(current->left && current->right) {
+		replacement = current;
+		current = tree_find_replacement(replacement);
+		goto successor;
+	}
 	
 	while(_case) {
 		switch(_case) {
 			case TREE_DELETION_CASE1:
+				parent = tree_parent(current);
+				if(parent) {
+					if(parent->left == current) {
+						parent->left = (current->left) ? current->left : current->right;
+						parent->left->parent = parent;
+						parent->left->color = BLACK;
+						
+					} else {
+						/* current is the right child of its parent */
+						parent->right = (current->left) ? current->left : current->right;
+						parent->right->parent = parent;
+						parent->right->color = BLACK;
+					}
+				} else {
+					/* current is root */
+					root->tree = (current->left) ? current->left : current->right;
+					root->tree->color = BLACK;
+					root->tree->parent = NULL;
+				}
+				_case = TREE_DELETION_TERMINATE;
 				break;
 				
 			case TREE_DELETION_CASE2:
-				break;
-				
-			case TREE_DELETION_CASE3:
-				break;
-				
-			case TREE_DELETION_CASE4:
+				if(root->tree == current) {
+					root->tree = NULL;
+					_case = TREE_DELETION_TERMINATE;
+					break;
+				}
+				/* current is NOT the root */
+				tree_sub_deletion(root, current);
 				break;
 				
 			case TREE_DELETION_CASE0:
 			default:
-				if(!(current->left && current->right)) {
-					/* current has at most one child */
-					if(current->left || current->right) {
-						/* current has one child */
-						if(current->color == RED) {
-							/* current has just one child and is red */
-						} else if(current->color == BLACK) {
-							
-						}
+				parent = tree_parent(current);
+				if(parent) {
+					if(parent->left == current) {
+						parent->left = NULL;
 					} else {
-						/* current has no children */
-						if(current->color == RED) {
-							parent = tree_parent(current);
-							if(parent) {
-								current->parent = NULL;
-								if(parent->left == current) {
-									parent->left = NULL;
-								} else {
-									parent->right = NULL;
-								}
-							} else {
-								root->tree = NULL;
-							}
-							_case = TREE_DELETION_TERMINATE;
-						}
+						parent->right = NULL;
 					}
 				}
+				_case = TREE_DELETION_TERMINATE;
 				break;
 		}
 	}
 
 	if(replace) {
-		replacement->left = current->left;
-		replacement->right = current->right;
-		replacement->parent = current->parent;
+		current->left = replacement->left;
+		current->right = replacement->right;
+		current->parent = replacement->parent;
+		if(replacement->parent) {
+			if(replacement->parent->left == replacement) {
+				current->parent->left = replacement;
+			} else {
+				current->parent->right = replacement;
+			}
+		}
 	}
 	
 	return rc;
+}
+
+static void tree_sub_deletion(struct rbtree_root *root, struct rbtree *current)
+{
+	
 }
 
 static struct rbtree *tree_find_replacement(struct rbtree *tree)
