@@ -14,19 +14,37 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# SRCS
 SRCS = tree.c main.c
+TREE_SRCS = tree.c
+#OBJECS
 OBJS=$(SRCS:.c=.o)
+TREE_OBJS=$(TREE_SRCS:.c=.o)
+
+#PROGRAMS
 CC = gcc
-CC_FLAGS = -c -Wall -O0 -DHAVE_DBG -g
-TARGET = rbtree
+CC_FLAGS = -c -fPIC -Wall -O0 -DHAVE_DBG -g
+
+#FILENAMES
+LIBNAME = librbtree.so
+DBG_EXEC = rbtree
+
+#TARGETS
+DBG_TARGET = $(DBG_EXEC)
+LIB_TARGET = $(LIBNAME)
 
 .PHONY: all clean
 
-all: $(OBJS)
-	$(CC) -o $(TARGET) $(OBJS) -Wall -O0 -g
+all: lib
+
+lib: $(TREE_OBJS)
+	$(CC) -shared -Wl,-soname,$(LIBNAME) -o $(LIBNAME) $(TREE_OBJS) -lc
+
+dbg: $(OBJS)
+	$(CC) -o $(DBG_TARGET) $(OBJS) -Wall -O0 -g
 
 %o: %c
 	$(CC) -o $@ $< $(CC_FLAGS)
 
 clean:
-	@rm -rfv $(OBJS) $(TARGET)
+	@rm -rfv $(OBJS) $(LIB_TARGET) $(DBG_TARGET)
