@@ -21,17 +21,27 @@
 
 #include "tree.h"
 
-static struct rbtree *__tree_insert(struct rbtree_root *root, struct rbtree *node);
-static void tree_validate_insertion(struct rbtree_root *root, struct rbtree *node);
+/* support */
 static void tree_rotate_swap_parent(struct rbtree_root *root, struct rbtree *parent, 
 									struct rbtree *current);
-static void tree_dump_node(struct rbtree *tree, FILE *stream);
 static struct rbtree *__tree_search(struct rbtree *tree, int key);
 static struct rbtree *tree_find_successor(struct rbtree *tree);
 static struct rbtree *tree_find_predecessor(struct rbtree *tree);
+static void tree_replace_node(struct rbtree_root *root, struct rbtree *orig, 
+								struct rbtree *replacement);
+
+/* insertion */
+static struct rbtree *__tree_insert(struct rbtree_root *root, struct rbtree *node);
+static void tree_validate_insertion(struct rbtree_root *root, struct rbtree *node);
+
+/* deletion */
+
 static int __tree_delete_node(struct rbtree_root *tree, struct rbtree *node);
 static struct rbtree *tree_find_replacement(struct rbtree *tree);
 static void tree_sub_deletion(struct rbtree_root *root, struct rbtree *current);
+
+/* dbg */
+static void tree_dump_node(struct rbtree *tree, FILE *stream);
 
 int tree_insert(struct rbtree_root *root, struct rbtree *node)
 {
@@ -364,6 +374,7 @@ static int __tree_delete_node(struct rbtree_root *root, struct rbtree *node)
 	} else if(current->left && current->right) {
 		replacement = current;
 		current = tree_find_replacement(replacement);
+		replace = 1;
 		goto successor;
 	}
 	
@@ -419,16 +430,7 @@ static int __tree_delete_node(struct rbtree_root *root, struct rbtree *node)
 	}
 
 	if(replace) {
-		current->left = replacement->left;
-		current->right = replacement->right;
-		current->parent = replacement->parent;
-		if(replacement->parent) {
-			if(replacement->parent->left == replacement) {
-				current->parent->left = replacement;
-			} else {
-				current->parent->right = replacement;
-			}
-		}
+		tree_replace_node(root, replacement, current);
 	}
 	
 	return rc;
@@ -499,7 +501,30 @@ static void tree_sub_deletion(struct rbtree_root *root, struct rbtree *current)
 				}
 				
 			case TREE_SUB_DELETION_CASE2:
+				if(fn == sibling->left) {
+					fn = sibling->right;
+					tree_rotate_left(root, sibling);
+					sibling = fn;
+					fn = sibling->left;
+				} else {
+					fn = sibling->left;
+					tree_rotate_right(root, sibling);
+					sibling = fn;
+					fn = sibling->right;
+				}
+				/* roll through */
+			
 			case TREE_SUB_DELETION_CASE3:
+				fn->color = BLACK;
+				sibling->color = sibling->parent->color;
+				sibling->parent->color = BLACK;
+				/* roll through */
+			case TREE_SUB_DELETION_CASE4:
+				if(current->parent->right == sibling) {
+					tree_rotate_left(root, current->parent);
+				} else {
+					tree_rotate_right(root, current->parent);
+				}
 				_case = TREE_SUB_DELETION_TERMINATE;
 				break;
 				
@@ -523,6 +548,41 @@ static struct rbtree *tree_find_replacement(struct rbtree *tree)
 	} else {
 		return tree_find_predecessor(tree);
 	}
+}
+
+/**
+ * \brief Replace a node with another node.
+ * \param root Tree root.
+ * \param orig Node to be replaced.
+ * \param replacement The node replacing \p orig.
+ */
+static void tree_replace_node(root, orig, replacement)
+struct rbtree_root *root;
+struct rbtree *orig;
+struct rbtree *replacement;
+{
+	replacement->left = orig->left;
+	replacement->right = orig->right;
+	replacement->parent = orig->parent;
+	
+	/* fix the parent pointers of origs children */
+	if(orig->left) {
+		orig->left->parent = replacement;
+	}
+	if(orig->right) {
+		orig->right->parent = replacement;
+	}
+	/* fix the pointer of origs parent */
+	if(orig->parent) {
+		if(orig->parent->left == orig) {
+			orig->parent->left = replacement;
+		} else {
+			orig->parent->right = replacement;
+		}
+	} else if(orig == root->tree) {
+		root->tree = replacement;
+	}
+	replacement->color = orig->color;
 }
 
 #ifdef HAVE_DBG
