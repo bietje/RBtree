@@ -41,14 +41,14 @@ int main(int argc, char **argv)
 	tree_add_node(&root, 26);
 #else
 	int i = 1;
-	for(; i <= 7; i++) {
+	for(; i <= 8; i++) {
 		tree_add_node(&root, i);
 	}
 // 	tree_add_node(&root, 9);
-// 	tree_add_node(&root, 1);
+	tree_add_node(&root, 1);
 #endif
 
-	struct rbtree *node = tree_search(&root, 6);
+	struct rbtree *node = tree_search(&root, 4);
 	tree_delete_node(&root, node);
 	tree_dump(root.tree, stdout);;
 // 	tree_cleanup(root.tree);

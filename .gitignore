@@ -1,3 +1,4 @@
 *.o
 rbtree
 *.java
+applet/
