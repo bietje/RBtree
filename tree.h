@@ -96,6 +96,22 @@ static inline struct rbtree *tree_node_has_sibling(struct rbtree *node)
 	return NULL;
 }
 
+/**
+ * \brief Return the 'far nephew' of the given node.
+ * \param node The 'far nephew' of \p node will be returned.
+ * \retval NULL if there is no 'far newphew'.
+ */
+static inline struct rbtree *tree_node_far_nephew(struct rbtree *node)
+{
+	struct rbtree *parent;
+	
+	if(node && tree_node_has_sibling(node)) {
+		parent = tree_parent(node);
+		return (parent->left == node) ? parent->right->right : parent->left->left;
+	}
+	return NULL;
+}
+
 static inline int tree_parent_on_left(struct rbtree *current)
 {
 	if(current->parent != NULL && current->parent->right == current) {

@@ -333,6 +333,7 @@ typedef enum
 	 * This step is reached through step 2 or directly (i.e. the far nephew is red).
 	 */
 	TREE_SUB_DELETION_CASE3,
+	
 	/**
 	 * \brief Currents sibling is black with at least one red child.
 	 * 
@@ -399,6 +400,7 @@ static int __tree_delete_node(struct rbtree_root *root, struct rbtree *node)
 				}
 				/* current is NOT the root */
 				tree_sub_deletion(root, current);
+				_case = TREE_DELETION_TERMINATE;
 				break;
 				
 			case TREE_DELETION_CASE0:
@@ -434,12 +436,86 @@ static int __tree_delete_node(struct rbtree_root *root, struct rbtree *node)
 
 static void tree_sub_deletion(struct rbtree_root *root, struct rbtree *current)
 {
+	tree_deletion_subcase_t _case;
+	struct rbtree *sibling, *fn;
+	rbtree_color_t tmp;
 	
+	sibling = tree_node_has_sibling(current);
+	fn = tree_node_far_nephew(current);
+	
+	/* unhook current from the tree */
+	if(current->parent->left == current) {
+		current->parent->left = NULL;
+	} else {
+		current->parent->right = NULL;
+	}
+	
+	do {
+		if(sibling != NULL) {
+			if(sibling->color == RED) {
+				_case = TREE_SUB_DELETION_CASE0;
+			} else if((!sibling->left || sibling->left->color == BLACK) && 
+				(!sibling->right || sibling->right->color == BLACK)) {
+				_case = TREE_SUB_DELETION_CASE1;
+			} else if(sibling->color == BLACK) {
+				if((sibling->left && sibling->left->color == RED) || 
+					(sibling->right && sibling->right->color == RED)) {
+					_case = (!fn || fn->color == BLACK) ? TREE_SUB_DELETION_CASE2 : 
+																		TREE_SUB_DELETION_CASE3;
+				}
+			}
+		}
+		
+		switch(_case) {
+			case TREE_SUB_DELETION_CASE0:
+				/* xchn colors of sibling and its parent */
+				tmp = sibling->parent->color;
+				sibling->parent->color = sibling->color;
+				sibling->color = tmp;
+				
+				/* rotate clock wise if sibling is on the left side of current */
+				if(sibling->parent->left == sibling) {
+					tree_rotate_right(root, sibling->parent);
+					sibling = current->parent->left;
+					fn = sibling->left;
+				} else {
+					tree_rotate_left(root, sibling->parent);
+					sibling = current->parent->right;
+					fn = sibling->right;
+				}
+				break;
+				
+			case TREE_SUB_DELETION_CASE1:
+				sibling->color = RED;
+				current = sibling->parent;
+				if(current->color == BLACK) {
+					sibling = tree_node_has_sibling(current);
+					fn = tree_node_far_nephew(current);
+					break;
+				} else {
+					current->color = BLACK;
+					_case = TREE_SUB_DELETION_TERMINATE;
+					break;
+				}
+				
+			case TREE_SUB_DELETION_CASE2:
+			case TREE_SUB_DELETION_CASE3:
+				_case = TREE_SUB_DELETION_TERMINATE;
+				break;
+				
+			default:
+				_case = TREE_SUB_DELETION_TERMINATE;
+				break;
+		}
+	} while(_case);
 }
 
 static struct rbtree *tree_find_replacement(struct rbtree *tree)
 {
 	struct rbtree *successor = tree_find_successor(tree);
+	if(!successor) {
+		return NULL;
+	}
 	
 	if(successor->color == RED || !(successor->color == BLACK && successor->left == NULL 
 		&& successor->right == NULL)) {
@@ -452,9 +528,6 @@ static struct rbtree *tree_find_replacement(struct rbtree *tree)
 #ifdef HAVE_DBG
 void tree_dump(struct rbtree *tree, FILE *stream)
 {
-	struct rbtree *node = __tree_search(tree, 10);
-	node = tree_find_replacement(node);
-	printf("Replacement would be: %X\n", node->key);
 	tree_dump_node(tree, stream);
 	fputc('\n', stream);
 }
